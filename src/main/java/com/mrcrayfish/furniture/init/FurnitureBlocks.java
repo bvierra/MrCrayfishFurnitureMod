@@ -80,7 +80,9 @@ public class FurnitureBlocks
     public static final BlockBlinds BLINDS_DARK_OAK, BLINDS_DARK_OAK_CLOSED;
 
     /* The Outdoor Update V2 */
-    public static final Block OAK_FENCE_UPGRADED, SPRUCE_FENCE_UPGRADED, BIRCH_FENCE_UPGRADED, JUNGLE_FENCE_UPGRADED, ACACIA_FENCE_UPGRADED, DARK_OAK_FENCE_UPGRADED;
+    public static final Block OAK_FENCE_UPGRADED, SPRUCE_FENCE_UPGRADED, BIRCH_FENCE_UPGRADED, JUNGLE_FENCE_UPGRADED, ACACIA_FENCE_UPGRADED, DARK_OAK_FENCE_UPGRADED, NETHER_BRICK_FENCE_UPGRADED;
+    public static final Block OAK_GATE_UPGRADED, SPRUCE_GATE_UPGRADED, BIRCH_GATE_UPGRADED, JUNGLE_GATE_UPGRADED, ACACIA_GATE_UPGRADED, DARK_OAK_GATE_UPGRADED;
+    public static final Block WHITE_GATE;
 
     /* Special */
     public static final Block MIRROR;
@@ -299,6 +301,14 @@ public class FurnitureBlocks
         JUNGLE_FENCE_UPGRADED = new BlockUpgradedFence("upgraded_fence_jungle");
         ACACIA_FENCE_UPGRADED = new BlockUpgradedFence("upgraded_fence_acacia");
         DARK_OAK_FENCE_UPGRADED = new BlockUpgradedFence("upgraded_fence_dark_oak");
+        NETHER_BRICK_FENCE_UPGRADED = new BlockUpgradedFence("upgraded_fence_nether_brick");
+        OAK_GATE_UPGRADED = new BlockUpgradedGate("upgraded_gate_oak");
+        SPRUCE_GATE_UPGRADED = new BlockUpgradedGate("upgraded_gate_spruce");
+        BIRCH_GATE_UPGRADED = new BlockUpgradedGate("upgraded_gate_birch");
+        JUNGLE_GATE_UPGRADED = new BlockUpgradedGate("upgraded_gate_jungle");
+        ACACIA_GATE_UPGRADED = new BlockUpgradedGate("upgraded_gate_acacia");
+        DARK_OAK_GATE_UPGRADED = new BlockUpgradedGate("upgraded_gate_dark_oak");
+        WHITE_GATE = new BlockWhiteGate("white_gate");
     }
 
     public static void register()
@@ -385,6 +395,7 @@ public class FurnitureBlocks
         registerBlock(BIRD_BATH);
         registerBlock(STONE_PATH);
         registerBlock(WHITE_FENCE);
+        registerBlock(WHITE_GATE, new ItemUpgradedGate(WHITE_GATE));
         registerBlock(TAP);
         registerBlock(MAIL_BOX_OAK);
         registerBlock(MAIL_BOX_SPRUCE);
@@ -503,6 +514,13 @@ public class FurnitureBlocks
         registerBlock(JUNGLE_FENCE_UPGRADED);
         registerBlock(ACACIA_FENCE_UPGRADED);
         registerBlock(DARK_OAK_FENCE_UPGRADED);
+        registerBlock(NETHER_BRICK_FENCE_UPGRADED);
+        registerBlock(OAK_GATE_UPGRADED, new ItemUpgradedGate(OAK_GATE_UPGRADED));
+        registerBlock(SPRUCE_GATE_UPGRADED, new ItemUpgradedGate(SPRUCE_GATE_UPGRADED));
+        registerBlock(BIRCH_GATE_UPGRADED, new ItemUpgradedGate(BIRCH_GATE_UPGRADED));
+        registerBlock(JUNGLE_GATE_UPGRADED, new ItemUpgradedGate(JUNGLE_GATE_UPGRADED));
+        registerBlock(ACACIA_GATE_UPGRADED, new ItemUpgradedGate(ACACIA_GATE_UPGRADED));
+        registerBlock(DARK_OAK_GATE_UPGRADED, new ItemUpgradedGate(DARK_OAK_GATE_UPGRADED));
     }
 
     private static void registerBlock(Block block)
