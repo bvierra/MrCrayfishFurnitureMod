@@ -5,11 +5,10 @@ buildscript {
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-        classpath "com.github.jengelman.gradle.plugins:shadow:1.2.4"
     }
 }
 apply plugin: 'net.minecraftforge.gradle.forge'
-apply plugin: 'com.github.johnrengelman.shadow'
+
 
 version = "6.0.0-1.12.2"
 group = "com.mrcrayfish"
@@ -26,12 +25,19 @@ minecraft {
     mappings = "snapshot_20171003"
 }
 
+
 repositories {
     maven { url "http://maven.blamejared.com/" } // CraftTweaker
 }
 
+
+configurations {
+    embed
+    compile.extendsFrom shade
+}
+
 dependencies {
-    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5'
+    embed 'org.apache.httpcomponents:httpclient:4.5'
 
     deobfCompile "CraftTweaker2:CraftTweaker2-MC1120-Main:1.12-4.1.6.467"
 }
@@ -50,6 +56,41 @@ processResources {
     }
 }
 
-shadowJar {
-    relocate "org.apache.http", "com.mrcrayfish.furniture.repack.org.apache.http"
+// Custom task to generate the metadata files required for our dependencies
+task generateMetaFiles {
+    // Code for execution after the whole buildscript was parsed and loaded
+    doLast {
+        // Clear the dependencyMeta directory since we don't want old dependencies to still be listed in there
+        file("${buildDir}/dependencyMeta/").deleteDir()
+        configurations.embed.resolvedConfiguration.resolvedArtifacts.each {
+            // Create a meta file for each dependency in a specified directory
+            def metaFile = file("${buildDir}/dependencyMeta/${it.file.name}.meta")
+            metaFile.parentFile.mkdirs()
+            // Use the Gradle notation provided by the API ('group:artifact:version') for the meta file...
+            def artifactRef = it.moduleVersion.toString()
+            // ...and append the classifier if present
+            if (it.classifier != null) {
+                artifactRef += ":${it.classifier}"
+            }
+            // Write the artifact information to the meta file, to be used by the
+            metaFile.text = "Maven-Artifact: $artifactRef"
+        }
+    }
 }
+
+// Use the standard JAR task as container for the main jar and the contained dependencies (from the embed configuration)
+jar {
+    into('/') {
+        // Add all of the dependency JARs to the main JAR for later extraction
+        from configurations.embed
+        // Also include all dependency meta files
+        from "${buildDir}/dependencyMeta/"
+    }
+    manifest {
+        // The crucial manifest attribute: Make Forge extract the contained JARs
+        attributes 'ContainedDeps': configurations.embed.collect { it.name }.join(' ')
+    }
+    // Only run the main jar task after the meta files were built
+    dependsOn generateMetaFiles
+}
+
