@@ -5,9 +5,11 @@ buildscript {
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath "com.github.jengelman.gradle.plugins:shadow:1.2.4"
     }
 }
 apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 version = "6.0.0-1.12.2"
 group = "com.mrcrayfish"
@@ -29,6 +31,8 @@ repositories {
 }
 
 dependencies {
+    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5'
+
     deobfCompile "CraftTweaker2:CraftTweaker2-MC1120-Main:1.12-4.1.6.467"
 }
 
@@ -44,4 +48,8 @@ processResources {
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
     }
+}
+
+shadowJar {
+    relocate "org.apache.http", "com.mrcrayfish.furniture.repack.org.apache.http"
 }

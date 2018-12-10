@@ -128,6 +128,7 @@ public final class GifCache
         }
 
         String id = DigestUtils.sha1Hex(url.getBytes()) + ".gif";
+        System.out.println("["+ url +"] File on disk: "+id);
         File file = new File(getCache(), id);
         if(file.exists())
         {

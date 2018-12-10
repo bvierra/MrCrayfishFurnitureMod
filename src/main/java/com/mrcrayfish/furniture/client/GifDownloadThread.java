@@ -1,9 +1,16 @@
 package com.mrcrayfish.furniture.client;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashSet;
 import java.util.Set;
@@ -15,8 +22,11 @@ public class GifDownloadThread extends Thread
 {
     private static final Set<String> LOADING_URLS = new HashSet<>();
 
-    //Prevents GIFs larger than 2MB from loading
+    // Prevents GIFs larger than 2MB from loading
     private static final long MAX_FILE_SIZE = 2097152;
+
+    // User Agent - Set to Chrome version 60 running on windows 10
+    private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.78 Safari/537.36";
 
     private String url;
     private ResponseProcessor processor;
@@ -65,40 +75,75 @@ public class GifDownloadThread extends Thread
             }
         }
 
-        try
-        {
-            URLConnection connection = new URL(url).openConnection();
-            connection.addRequestProperty("User-Agent", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)");
+        System.out.println("Downloading: "+url);
 
-            if(!"image/gif".equals(connection.getContentType()))
-            {
-                processor.process(ImageDownloadResult.UNKNOWN_FILE, "The file is not a GIF");
-                return;
-            }
+        // Use a custom RequestConfig because the default one cannot correctly parse the latest RFC for cookies
+        RequestConfig clientConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build();
 
-            long length = Long.parseLong(connection.getHeaderField("Content-Length"));
-            if(length > MAX_FILE_SIZE)
-            {
-                processor.process(ImageDownloadResult.TOO_LARGE, "The GIF is greater than " + MAX_FILE_SIZE / 1024.0 + "MB");
-                return;
-            }
+        // Testing URL's
+        // SUCCESS: https://github.com/bvierra/MrCrayfishFurnitureMod/raw/master/test/files/tv/SUCCESS.gif
+        // TOO_LARGE: https://github.com/bvierra/MrCrayfishFurnitureMod/raw/master/test/files/tv/TOO_LARGE.gif
+        // UNKNOWN_FILE: https://github.com/bvierra/MrCrayfishFurnitureMod/raw/master/test/files/tv/UNKNOWN_FILE.gif
+
+        try (CloseableHttpClient client = HttpClients.custom().setDefaultRequestConfig(clientConfig).build()){
+            HttpGet request = new HttpGet(url);
+            request.addHeader("User-Agent",USER_AGENT);
 
             setLoading(url, true);
-            byte[] data = IOUtils.toByteArray(connection);
-            if(GifCache.INSTANCE.add(url, data))
-            {
+            // Download the headers
+            HttpResponse response = client.execute(request);
+
+            if (response.getStatusLine().getStatusCode() > 200) {
                 setLoading(url, false);
-                processor.process(ImageDownloadResult.SUCCESS, "Successfully processed GIF");
+                processor.process(ImageDownloadResult.FAILED, "Could not retrieve GIF");
+                System.out.println("Could not download, server responded with status code: "+response.getStatusLine().getStatusCode());
+                return;
+            }
+            else if (Integer.parseInt(response.getLastHeader("Content-Length").getValue() ) > MAX_FILE_SIZE) {
+                setLoading(url, false);
+                processor.process(ImageDownloadResult.TOO_LARGE, "The GIF is greater than " + MAX_FILE_SIZE / 1024.0 + "MB");
+                System.out.println("File too large: " + Integer.parseInt(response.getLastHeader("Content-Length").getValue() ));
+                System.out.println("Max size allowed: " + MAX_FILE_SIZE);
+                return;
+            }
+
+            // Download the full file
+            HttpEntity entity = response.getEntity();
+            if (entity != null) {
+                byte[] data = EntityUtils.toByteArray(entity);
+
+                // Check the contentType by looking at the actual file stream to avoid a server misconfiguration or an attempt to deceive and download a malicious file as a gif.
+                String contentType = URLConnection.guessContentTypeFromStream(new ByteArrayInputStream(data));
+                if (!"image/gif".equals(contentType))
+                {
+                    setLoading(url, false);
+                    processor.process(ImageDownloadResult.UNKNOWN_FILE, "The file is not a GIF");
+                    System.out.println("File downloaded was not a gif it's content type was: : "+contentType);
+                    return;
+                }
+
+                if(GifCache.INSTANCE.add(url, data))
+                {
+                    setLoading(url, false);
+                    processor.process(ImageDownloadResult.SUCCESS, "Successfully processed GIF");
+                    return;
+                }
+
+            }
+            else {
+                setLoading(url, false);
+                processor.process(ImageDownloadResult.FAILED, "Could not retrieve GIF");
                 return;
             }
         }
         catch(IOException e)
         {
+            setLoading(url, false);
+            processor.process(ImageDownloadResult.FAILED, "Could not retrieve GIF");
             e.printStackTrace();
         }
-        processor.process(ImageDownloadResult.FAILED, "Unable to process GIF");
-        setLoading(url, false);
     }
+
 
     public interface ResponseProcessor
     {
